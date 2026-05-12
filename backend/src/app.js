@@ -23,23 +23,21 @@ const auditLogRoutes = require("./routes/auditLogRoutes");
 
 const app = express();
 
-const allowedOrigins = [
-    "http://localhost:5173",
-    "https://localhost:5173",
-];
-
 app.use(cors({
-    origin(origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-            return callback(null, true);
-        }
-
-        return callback(null, true);
-    },
+    origin: true,
     credentials: true,
 }));
 
 app.use(express.json());
+
+app.get("/", (req, res) => {
+    res.send("JKH backend is running");
+});
+
+app.get("/api", (req, res) => {
+    res.json({ message: "API is running" });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/residents", residentRoutes);
 app.use("/api/apartments", apartmentRoutes);
@@ -52,16 +50,12 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/resident-cabinet", residentCabinetRoutes);
 app.use("/api/audit-logs", auditLogRoutes);
 
-app.get("/", (req, res) => {
-    res.json({ message: "Сервер ЖКХ работает" });
-});
-
 const PORT = process.env.PORT || 5000;
 const USE_HTTPS = process.env.USE_HTTPS === "true";
 
 function runHttpServer() {
-    app.listen(PORT, () => {
-        console.log(`HTTP сервер запущен: http://localhost:${PORT}`);
+    app.listen(PORT, "0.0.0.0", () => {
+        console.log(`HTTP сервер запущен на порту ${PORT}`);
     });
 }
 
@@ -78,9 +72,8 @@ function runHttpsServer() {
     https.createServer({
         key: fs.readFileSync(keyPath),
         cert: fs.readFileSync(certPath),
-    }, app).listen(PORT, () => {
+    }, app).listen(PORT, "0.0.0.0", () => {
         console.log(`HTTPS сервер запущен: https://localhost:${PORT}`);
-        console.log("При первом открытии браузер может попросить подтвердить локальный сертификат");
     });
 }
 
@@ -88,6 +81,7 @@ async function startServer() {
     try {
         await sequelize.authenticate();
         console.log("База данных PostgreSQL подключена");
+
         await sequelize.sync({ alter: true });
         console.log("Таблицы синхронизированы");
 
@@ -98,6 +92,7 @@ async function startServer() {
         }
     } catch (error) {
         console.error("Ошибка подключения к базе данных:", error);
+        process.exit(1);
     }
 }
 
